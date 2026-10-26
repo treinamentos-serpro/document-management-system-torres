@@ -28,11 +28,27 @@ const upload = multer({
   }),
   limits: { fileSize: fileSizeLimit, files: 1 },
 });
+const parseSingleFile = upload.single('file');
+
+function handleUploadParsing(req, res, next) {
+  parseSingleFile(req, res, (error) => {
+    if (!error) {
+      return next();
+    }
+    if (error instanceof multer.MulterError || error.code) {
+      return next(error);
+    }
+
+    error.status = 400;
+    error.code = 'INVALID_UPLOAD';
+    return next(error);
+  });
+}
 
 router.post(
   '/upload',
   documentController.requireUser,
-  upload.single('file'),
+  handleUploadParsing,
   documentController.upload,
 );
 router.get('/documents', documentController.requireUser, documentController.list);
